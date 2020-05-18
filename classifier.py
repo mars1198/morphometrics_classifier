@@ -32,20 +32,50 @@ import time
 import os
 import re
 
+
 def plot_confusion_matrix(y_true, y_pred, matrix_title):
-    plt.figure(figsize=(20, 20), dpi=100)
-    cf_matrix = confusion_matrix(y_true, y_pred)
-    true_labels = np.unique(y_true)
-    pred_labels = np.unique(y_pred)
-    x_axis_labels = np.arange(len(true_labels))
-    y_axis_labels = np.arange(len(pred_labels))
-    sns.heatmap(cf_matrix/np.sum(cf_matrix), annot=True, fmt='.2%', cmap='Blues')
+    cm = confusion_matrix(y_true, y_pred, labels=np.unique(y_true))
+    cm_sum = np.sum(cm, axis=1, keepdims=True)
+    cm_perc = cm / cm_sum.astype(float) * 100
+    annot = np.empty_like(cm).astype(str)
+    nrows, ncols = cm.shape
+    for i in range(nrows):
+        for j in range(ncols):
+            c = cm[i, j]
+            p = cm_perc[i, j]
+            if i == j:
+                s = cm_sum[i]
+                annot[i, j] = '%.1f%%\n%d/%d' % (p, c, s)
+            elif c == 0:
+                annot[i, j] = ''
+            else:
+                annot[i, j] = '%.1f%%\n%d' % (p, c)
+    cm = pd.DataFrame(cm, index=np.unique(y_true), columns=np.unique(y_true))
+    cm.index.name = 'Actual'
+    cm.columns.name = 'Predicted'
+    fig, ax = plt.subplots(figsize=(20, 20))
+    sns.heatmap(cm, cmap= "YlGnBu", annot=annot, fmt='', ax=ax)
     plt.title(matrix_title, fontsize=12)
-    plt.xticks(x_axis_labels, true_labels, rotation=90)
-    plt.yticks(y_axis_labels, pred_labels, rotation=0)
-    plt.ylabel('Predicted label', fontsize=10)
-    plt.xlabel('True label', fontsize=10)
     plt.show()
+    
+    
+
+#def plot_confusion_matrix(y_true, y_pred, matrix_title):
+#    plt.figure(figsize=(20, 20), dpi=100)
+#    cf_matrix = confusion_matrix(y_true, y_pred)
+#    true_labels = np.unique(y_true)
+#    pred_labels = np.unique(y_pred)
+#    x_axis_labels = np.arange(len(true_labels))
+#    y_axis_labels = np.arange(len(pred_labels))
+#    sns.heatmap(cf_matrix, annot=True, cmap='Blues')
+#    plt.title(matrix_title, fontsize=12)
+#    plt.xticks(x_axis_labels, true_labels, rotation=90)
+#    plt.yticks(y_axis_labels, pred_labels, rotation=0)
+#    plt.ylabel('Predicted label', fontsize=10)
+#    plt.xlabel('True label', fontsize=10)
+#    plt.show()
+
+
 
 def run_classifier(clfr, x_train_data, y_train_data, x_test_data, y_test_data, acc_str, matrix_header_str):
     start_time = time.time()
@@ -58,7 +88,7 @@ def run_classifier(clfr, x_train_data, y_train_data, x_test_data, y_test_data, a
     plot_confusion_matrix(y_test_data, y_pred, matrix_header_str)
 
 #load data
-bankdata = pd.read_csv("data/all1.csv")
+bankdata = pd.read_csv("data/all2.csv")
 
 #Extract features lables
 features = bankdata.drop('Taxon', axis=1)
